@@ -9,4 +9,4 @@ We decided to focus our efforts on the relationship between COVID-19 and mental 
 We want to understand how general mental health of the general public has been impacted by COVID-19 pandemic before and after the breakout. In addition, we will closely analyze whether mental health has any influence on the outcome of the COVID-19 infection of individuals, for example, reducing death risk.
 
 ## Statistical technique
-We would probably use statistical techniques such as multivariate regressions to understand the demographic differences of vaccination on the general public.
+We would probably use statistical techniques such as correlations, confidence intervals, hypothesis testing, multivariate or logistic regressions to understand the demographic differences of wellbeing on the general public before and during the pandemic.
