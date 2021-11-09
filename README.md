@@ -4,6 +4,12 @@ This is the summary of the group project delivered by Study Group 1 for the Data
 
 ## Dataset selection
 We decided to focus our efforts on the relationship between COVID-19 and mental health. 
+This following dataset would provide happiness data across different countries after the COVID-19 breakout.
+<https://www.kaggle.com/ajaypalsinghlo/world-happiness-report-2021> 
+This dataset would provide a benchmark for happiness data across different countries before the COVID-19 breakout.
+<https://www.kaggle.com/mathurinache/world-happiness-report?select=2020.csv>
+This last dataset would provide data of latest COVID-19 cases across different countries.
+<https://www.kaggle.com/anandhuh/covid19-in-world-countrieslatest-data>
 
 ## Issues to explore
 We want to understand how general mental health of the general public has been impacted by COVID-19 pandemic before and after the breakout. In addition, we will closely analyze whether mental health has any influence on the outcome of the COVID-19 infection of individuals, for example, reducing death risk.
