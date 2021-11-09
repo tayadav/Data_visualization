@@ -2,7 +2,7 @@
 This is the summary of the group project delivered by Study Group 1 for the Data Visualisation Module.
 
 ## Dataset selection
-We decided to focus our efforts on the relationship between COVID-19 and mental health. 
+We decided to focus our efforts on the relationship between COVID-19 and mental health. Relevant datasets have been saved in the Data file.
 This following dataset would provide happiness data across different countries after the COVID-19 breakout.  
 <https://www.kaggle.com/ajaypalsinghlo/world-happiness-report-2021>   
 This dataset would provide a benchmark for happiness data across different countries before the COVID-19 breakout.  
