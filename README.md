@@ -12,7 +12,7 @@ This last dataset would provide data of latest COVID-19 cases across different c
 <https://www.kaggle.com/anandhuh/covid19-in-world-countrieslatest-data>  
 
 ## Issues to explore
-We want to understand how general mental health of the general public has been impacted by COVID-19 pandemic before and after the breakout. In addition, we will closely analyze whether mental health has any influence on the outcome of the COVID-19 infection of individuals, for example, reducing death risk.
+Firstly, we would like to explore how COVID has generally impacted countries across the world. Then, we want to understand how general mental health of the general public has been impacted by COVID-19 pandemic before and during the breakout by looking at the world happiness report. In addition, we will closely analyze whether mental health could have any influence on the outcome of the COVID-19 infection of individuals, for example, reducing death risk.
 
 ## Statistical technique
 We would probably use statistical techniques such as correlations, confidence intervals, hypothesis testing, multivariate or logistic regressions to understand the demographic differences of wellbeing on the general public before and during the pandemic.
