@@ -1,5 +1,4 @@
 # Data Visualization Group Project
-
 This is the summary of the group project delivered by Study Group 1 for the Data Visualisation Module.
 
 ## Dataset selection
