@@ -1,0 +1,333 @@
+---
+title: "Data Viz Group Project"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    number_sections: true
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.align = "center"
+)
+```
+
+```{r libraries, include=FALSE}
+library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
+library(lubridate)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(gridExtra)
+library(countrycode)
+library(airportr)
+```
+
+# Load the data
+
+```{r load the data, message=FALSE, warning=FALSE}
+nyc_flights <- read.csv(here::here("nyc_flights.csv")) %>% 
+  clean_names()
+
+glimpse(nyc_flights)
+skim(nyc_flights)
+```
+
+## Check variables
+
+>In this dataset, we have the following information:  
+>
+a) Flight scheduled date and time  
+>
+b)  Flight delayed time in Departure and Arrival
+>
+c) Plane information and Carrier  
+>
+d) Destinations and distances from NYC to destinations
+
+# Technically correct data
+
+## Change time data
+
+```{r time, message=FALSE, warning=FALSE}
+nyc_time <- nyc_flights %>%
+  mutate(
+    ymd = paste(year, month, day, sep = "-"),
+    ymd = ymd(ymd),
+    scheduled_time = paste(hour, minute, sep = "/"),
+    scheduled_time = hm(scheduled_time),
+    scheduled = ymd_hms(ymd + scheduled_time),
+    air_time = dminutes(air_time),
+    arrived_nyc_time = scheduled + air_time)
+```
+
+## Add daytime
+
+```{r daytime, message=FALSE, warning=FALSE}
+nyc_day <- nyc_time %>% 
+  mutate(
+    daytime = case_when(
+      (scheduled_time >= hm("00:00") & (scheduled_time < hm("06:00"))) ~ "Night",
+      (scheduled_time >= hm("06:00") & (scheduled_time < hm("12:00"))) ~ "Morning",
+      (scheduled_time >= hm("12:00") & (scheduled_time < hm("18:00"))) ~ "Afternoon",
+      (scheduled_time >= hm("18:00") & (scheduled_time <= hm("24:00"))) ~ "Evening")
+  )
+```
+
+## Add season 
+
+```{r season, message=FALSE, warning=FALSE}
+nyc_season <- nyc_day %>% 
+  mutate(
+    season = case_when(
+      (month >= 3 & (month <= 5)) ~ "Spring",
+      (month >= 6 & (month <= 8)) ~ "Summer",
+      (month >= 9 & (month <= 11)) ~ "Autumn",
+      month >= 12 ~ "Winter",
+       month <= 2 ~ "Winter")
+  )
+```
+
+## Change airport code
+
+```{r airport, message=FALSE, warning=FALSE}
+nyc_airport <- nyc_season %>% 
+  group_by(dest) %>% 
+  mutate(
+    des_airport_name = airport_lookup(dest, input_type = "IATA", output_type = "name"),
+    des_city = airport_lookup(dest, input_type = "IATA", output_type = "city"),
+    lat = airport_location(dest, input_type = "IATA")[[1]],
+    log = airport_location(dest, input_type = "IATA")[[2]]
+  ) %>% 
+  ungroup()
+```
+
+## Delay
+
+```{r delay difference, message=FALSE, warning=FALSE}
+nyc_delay <- nyc_airport %>% 
+  mutate(
+    catch_up = dep_delay - arr_delay,
+    severity = case_when(
+      dep_delay <= 180 ~ "Minor",
+      dep_delay > 180 ~ "Severe"
+    )
+    #this variable calculates how much time has been caught up during flight time to make up for the delay
+    #positive value would mean this flight did catach up
+  )
+```
+
+## Flight distance
+
+```{r flight distance, message=FALSE, warning=FALSE}
+nyc_dis <- nyc_delay %>% 
+  mutate(
+    long_dis = case_when(
+      distance <= 1000 ~ "short",
+      (distance > 1000 & distance <= 2000) ~ "mid-range",
+      distance > 2000 ~ "long"
+    )
+  )
+```
+
+# EDA
+
+```{r final data output, message=FALSE, warning=FALSE}
+nyc_clean <- nyc_dis %>% 
+  mutate(
+    carrier_long = case_when(
+      (carrier == "AA" ) ~ "American Airlines",
+      (carrier == "AS" ) ~ "Alaska Airlines",
+      (carrier == "B6" ) ~ "jetBlue",
+      (carrier == "DL" ) ~ "Delta Air Lines",
+      (carrier == "EV" ) ~ "ExpressJet",
+      (carrier == "FL" ) ~ "AirTran Airways",
+      (carrier == "F9" ) ~ "Frontier Airlines",
+      (carrier == "HA" ) ~ "Hawaiian Airlines",
+      (carrier == "MQ" ) ~ "American Eagle Airlines",
+      (carrier == "OO" ) ~ "SkyWest Airlines",
+      (carrier == "9E" ) ~ "Endeavor Air",
+      (carrier == "UA" ) ~ "United Airlines",
+      (carrier == "US" ) ~ "US Airways",
+      (carrier == "VX" ) ~ "Virgin America",
+      (carrier == "WN" ) ~ "Southwest Airlines",
+      (carrier == "YV" ) ~ "Mesa Airlines"
+    ))
+  
+write.csv(nyc_clean,file="nyc_flights_cleaned.csv", row.names = FALSE)
+
+glimpse(nyc_clean)
+
+nyc_skim <- nyc_clean %>% 
+  select(-air_time)
+
+skim(nyc_skim)
+```
+
+```{r making money, message=FALSE, warning=FALSE}
+nyc_season <- nyc_clean%>% 
+  group_by(carrier) %>% 
+  summarise(delay_mean = mean(arr_delay),
+            delay_std = sd(arr_delay)) %>% 
+  arrange(desc(delay_mean))
+
+nyc_time <- nyc_clean %>%
+  filter(carrier == "HA") %>% 
+  group_by(carrier, daytime, season) %>% 
+  summarise(delay_mean = mean(arr_delay)) %>% 
+  arrange(desc(delay_mean))
+
+nyc_carrier <- nyc_clean %>% 
+  filter(daytime == "Morning", season == "Winter", carrier == "HA") %>% 
+  group_by(carrier, daytime, season, origin) %>% 
+  summarise(delay_mean = mean(arr_delay)) %>% 
+  arrange(desc(delay_mean))
+
+nyc_des <- nyc_clean %>% 
+  filter(daytime == "Morning", season == "Winter", carrier == "HA", origin == "JFK") %>% 
+  group_by(origin, season, daytime, dest, carrier) %>% 
+  summarise(delay_mean = mean(arr_delay)) %>% 
+  arrange(desc(delay_mean))
+
+nyc_season
+nyc_time
+nyc_carrier
+nyc_des
+
+nyc_MONEY <- nyc_clean %>% 
+  group_by(origin, season, daytime, dest, carrier) %>% 
+  summarise(delay_mean = mean(arr_delay)) %>% 
+  arrange(desc(delay_mean))
+
+nyc_MONEY
+```
+
+
+
+We set up the following hypotheses for the test:     
+$H_0: \mu_{JFK}-\mu_{LGA}= 0$ vs 
+$H_1: \mu_{JFK}-\mu_{LGK}\neq 0$   
+
+```{r mean delays by airport}
+#generate confidence intervals to find out if there is a difference in mean arrival delays across airports
+nyc_clean %>%
+ group_by(origin) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+#EWR certainly seems to have the highest arrival associated delays. Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+
+### Hypothesis Testing of White and Non-White  
+# hypothesis testing using t.test() 
+origin_hyp <-nyc_clean %>% 
+  filter(origin != "EWR")
+
+t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. JFK has higher delays
+```
+
+
+```{r mean delays by season}
+#generate confidence intervals to find out if there is a difference in mean arrival delays across seasons
+nyc_clean %>%
+ group_by(season) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+#summer clearly has the highest delays. also note that most flights happen in winter and not in summer which is what we would expect.
+```
+
+```{r mean delays by time of day}
+#generate confidence intervals to find out if there is a difference in mean arrival delays across time of day
+nyc_clean %>%
+ group_by(daytime) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+#evening flights have huge difference in delay times. let's look into winter evening times
+nyc_clean %>%
+  filter(season == "Winter") %>%
+ group_by(daytime) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+#night time CI has huge range due to very small number of flights occuring at this time of day in winter. Evening still looks to be most consistently delayed with larger delay times.
+
+```
+
+```{r carriers}
+#check carrier delays
+nyc_clean %>%
+ group_by(carrier) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+#carrier FL is one of the only carriers with positive median delay time so it points us towards believing that it is causing many delays
+nyc_clean %>%
+ filter(carrier == "FL",arr_delay >=0) %>%
+  count()
+
+nyc_clean %>%
+ filter(carrier == "FL",arr_delay >=0) %>%
+  group_by(origin) %>%
+  count() #all delays are at LGA
+
+nyc_clean %>%
+ filter(carrier == "FL",origin == "LGA") %>%
+  group_by(dest) %>% #most flights are to atlanta
+  count()
+
+nyc_clean %>%
+ filter(carrier == "FL",origin == "LGA", dest == "ATL", arr_delay > 0) %>%
+  arrange(desc(arr_delay)) #many long delays!!!
+
+#mostly delayed are during the evening, season ranges
+  
+```
+
