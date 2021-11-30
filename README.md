@@ -1,17 +1,25 @@
 # Data Visualization Group Project
 This is the summary of the group project delivered by Study Group 1 for the Data Visualisation Module.
 
+## Background
+Due to incredibly large distances in the US, many more of the routes are covered by airplane compared to Europe, for example. Naturally travelling across the country can quickly become quite expensive, unless you are one of the "travel hackers". 
+Over time, it has become quite popular to find deals that enable air fares that are basically free. 
+While it may not be the most conventional way of flying, passengers on flights with more than 3 hours of delay receive large monetary compensation. Consequently, we decided to investigate air travel and see whether we can identify certain routes where large delays are probable and thus, a high likelihood of monetary compensation for travellers. 
+
 ## Dataset selection
-We decided to focus our efforts on the relationship between COVID-19 and mental health. Relevant datasets have been saved in the Data file.
-This following dataset would provide happiness data across different countries after the COVID-19 breakout.  
-<https://www.kaggle.com/ajaypalsinghlo/world-happiness-report-2021>   
-This dataset would provide a benchmark for happiness data across different countries before the COVID-19 breakout.  
-<https://www.kaggle.com/mathurinache/world-happiness-report?select=2020.csv>  
-This last dataset would provide data of latest COVID-19 cases across different countries.  
-<https://www.kaggle.com/anandhuh/covid19-in-world-countrieslatest-data>  
+We decided to focus our efforts on air travel starting in New York City. With 3 large airports spread around the city, the world's financial center is well connected across the US with 16 million passengers solely going through JFK airport. (<https://www.statista.com/statistics/962767/passenger-traffic-new-york-john-f-kennedy-type/>).
+Therefore, we decide to analyse airport activity in JFK, LaGuardia and Newark Airport in New York in 2013 for inland flights across the US. This data was the most recent data available for United States travel, and while it may not be representative of a post-Covid era, it should be sufficient to recognize patterns of when flights are more likely to be delayed.
+
+Dataset: <https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity> 
+
 
 ## Issues to explore
-Firstly, we would like to explore how COVID has generally impacted countries across the world. Then, we want to understand how general mental health of the general public has been impacted by COVID-19 pandemic before and during the breakout by looking at the world happiness report. In addition, we will closely analyze whether mental health could have any influence on the outcome of the COVID-19 infection of individuals, for example, reducing death risk.
+The analysis is conducted from the perspective of a traveller that is looking for any destination across the US for a holiday. However, the traveller has a relatively small budget and would therefore like to be reimbursed for his/her flight fair caused by a severe arrival delay. Consequently, we investigated the choices that can be influenced by the traveller, such as:
+- Season
+- Daytime
+- Airport
+- Airline
+- Destination
 
 ## Statistical technique
-We would probably use statistical techniques such as correlations, confidence intervals, hypothesis testing, multivariate or logistic regressions to understand the demographic differences of wellbeing on the general public before and during the pandemic.
+We would probably use statistical techniques such as correlations, confidence intervals, hypothesis testing, multivariate or logistic regressions to understand and determine the impact of variables on arrival delay.
