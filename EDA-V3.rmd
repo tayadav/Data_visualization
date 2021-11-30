@@ -25,6 +25,13 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Background
+
+> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify certain routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.
+
+# Key issues
+
+
 ```{r libraries, include=FALSE}
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
 library(lubridate)
@@ -40,7 +47,7 @@ library(airportr)
 
 ```{r load the data, message=FALSE, warning=FALSE}
 #load data
-nyc_flights <- read.csv(here::here("nyc_flights.csv")) %>% 
+nyc_flights <- read.csv(here::here("nyc-flights.csv")) %>% 
   clean_names()
 
 glimpse(nyc_flights)
@@ -206,49 +213,7 @@ nyc_clean %>%
   )
 ```
 
-
-
-
-```{r making money, message=FALSE, warning=FALSE}
-############# need to be adjusted
-nyc_season <- nyc_clean%>% 
-  group_by(carrier) %>% 
-  summarise(delay_mean = mean(arr_delay),
-            delay_std = sd(arr_delay)) %>% 
-  arrange(desc(delay_mean))
-
-nyc_time <- nyc_clean %>%
-  filter(carrier == "HA") %>% 
-  group_by(carrier, daytime, season) %>% 
-  summarise(delay_mean = mean(arr_delay)) %>% 
-  arrange(desc(delay_mean))
-
-nyc_carrier <- nyc_clean %>% 
-  filter(daytime == "Morning", season == "Winter", carrier == "HA") %>% 
-  group_by(carrier, daytime, season, origin) %>% 
-  summarise(delay_mean = mean(arr_delay)) %>% 
-  arrange(desc(delay_mean))
-
-nyc_des <- nyc_clean %>% 
-  filter(daytime == "Morning", season == "Winter", carrier == "HA", origin == "JFK") %>% 
-  group_by(origin, season, daytime, dest, carrier) %>% 
-  summarise(delay_mean = mean(arr_delay)) %>% 
-  arrange(desc(delay_mean))
-
-nyc_season
-nyc_time
-nyc_carrier
-nyc_des
-
-nyc_MONEY <- nyc_clean %>% 
-  group_by(origin, season, daytime, dest, carrier) %>% 
-  summarise(delay_mean = mean(arr_delay)) %>% 
-  arrange(desc(delay_mean))
-
-nyc_MONEY
-```
-
-
+########tableau
 # Hypotheses test
 > We set up the following hypotheses for the test:     
 >
@@ -272,10 +237,10 @@ nyc_clean %>%
 
 #EWR certainly seems to have the highest arrival associated delays. Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
 
-### Hypothesis Testing of White and Non-White  
+### Hypothesis Testing of EWR & LGA airports  
 # hypothesis testing using t.test() 
 origin_hyp <-nyc_clean %>% 
-  filter(origin != "EWR")
+  filter(origin != "JFK")
 
 t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. JFK has higher delays
 ```
