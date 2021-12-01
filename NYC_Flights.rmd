@@ -1,6 +1,6 @@
 ---
 title: "Data Viz Group Project"
-author: ""
+author: "Study Group 1: Jiangxia Yu; Marianna Taki; Yuting Wu; Ferdinand Wohlenberg; Massimiliano Ursig; Tanisha Yadav"
 date: "`r Sys.Date()`"
 output:
   html_document:
