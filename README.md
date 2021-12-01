@@ -2,9 +2,9 @@
 This is the summary of the group project delivered by Study Group 1 for the Data Visualisation Module.
 
 ## Background
-Due to incredibly large distances in the US, many more of the routes are covered by airplane compared to Europe, for example. Naturally travelling across the country can quickly become quite expensive, unless you are one of the "travel hackers". 
-Over time, it has become quite popular to find deals that enable air fares that are basically free. 
-While it may not be the most conventional way of flying, passengers on flights with more than 3 hours of delay receive large monetary compensation. Consequently, we decided to investigate air travel and see whether we can identify certain routes where large delays are probable and thus, a high likelihood of monetary compensation for travellers. 
+Due to incredibly large distances in the US, many more of the routes are covered by airplane compared to Europe, for example. Naturally travelling across the country can quickly become quite expensive, unless you are one of the "travel hackers".  
+
+With many LBS students travelling to the US for their GIFTs, and potentially wanting to travel around before/after the GIFTs, we thought it would be interesting to analyze travel hacks to suggest options for low-cost air travel. Some members of our group recently received monetary compensation for delayed flights, thus we asked ourselves whether it is possible to deliberately identify flight delays, receive monetary compensation and consequently travel with a low budget.
 
 ## Dataset selection
 We decided to focus our efforts on air travel starting in New York City. With 3 large airports spread around the city, the world's financial center is well connected across the US with 16 million passengers solely going through JFK airport. (<https://www.statista.com/statistics/962767/passenger-traffic-new-york-john-f-kennedy-type/>).  
@@ -12,14 +12,35 @@ Therefore, we decide to analyse airport activity in JFK, LaGuardia and Newark Ai
 
 Dataset: <https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity> 
 
+## Cleaning 
+The first step of this project was ensuring consistency among the data. Furthermore, variables were added (e.g., daytime, season, time caught up, etc.) to better assess a significant difference in delays between flights. 
 
-## Issues to explore
-The analysis is conducted from the perspective of a traveller that is looking for any destination across the US for a holiday. However, the traveller has a relatively small budget and would therefore like to be reimbursed for his/her flight fair caused by a severe arrival delay. Consequently, we investigated the choices that can be influenced by the traveller, such as:
-- Season
-- Daytime
-- Airport
-- Airline
+## Statistical Significance
+Before any analysis could be conducted, we had to assess whether there is actually a statistically significant difference between different flights according to their parameters. Naturally, we only focused on variables that can be influenced by travellers, as the goal is helping travellers to find cheap flights. 
+For example, are flights during the evening more delayed than during the morning, or are is any of the three airports in NYC specifically dominant when it comes to delays.  
+
+Several hypothesis tests and confidence intervals were conducted with the final insight that arrival delay can actually be explained by several variables of the dataset. 
+Such variables are:
+- Season of the year
+- Time of day 
+- Airport 
+- Airline 
 - Destination
 
-## Statistical technique
-We would probably use statistical techniques such as correlations, confidence intervals, hypothesis testing, multivariate or logistic regressions to understand and determine the impact of variables on arrival delay.
+## Analysis
+Once we confirmed the statistically significant difference among variables with respect to flight delay, we started thinking about an approach for choosing the optimal flights. Similar to the overall approach of our project, we decided to go with a sequential Top-Down approach. This implies that we started with broad parameters and further narrowed it down, while incorporating previous decisions on parameters in selecting the next value.   
+
+As an example, we started by identifying the season and daytime with the largest average arrival delays, which occur on Summer Evenings. The next step was identifying the airport with the largest average delay, but instead of general delays per airport, we only assessed the average delay per airport during Summer Evening.   
+
+This process runs through our entire analysis which each decision depending on the previous selection of parameters.  
+
+## Conclusion and Recommendation
+The end result is a recommendation of one flight for short-, mid-, and long-term distance where travellers are likely to experience large delays, and thus a cash reimbursement.  
+
+All flights are going from **Newark Airport** during **Summer Evening (6pm - 12pm)**.
+
+Short-distance flight: **Columbus, OH (ExpressJet)**
+
+Mid-distance flight: **Minneapolis, MN (ExpressJet)**
+
+Long-distance flight: **San Francisco, CA (Virgin America)**
