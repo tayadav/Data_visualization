@@ -27,10 +27,25 @@ knitr::opts_chunk$set(
 
 # Background
 
-> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify certain routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.
+> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify specific routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.  
+
+
+> We decided to focus on air travel, starting with New York, whose three major airports connect to all parts of the US. We ,therefore, choose to analyse the performance of New York John F. Kennedy, LaGuardia and Newark airports for domestic flights in the United States in 2013. Though this latest available dataset of US is in 2013, which may not necessarily reflect the post-Covid era, it should be sufficient to figure out when flights are more likely to be delayed.  
+
+> Key issues:
+>
+This study is based on the perspective of travelers who are price-sensitive or on a limited budget with flexible travel schedules. We focus on delay time so that he or she can be reimbursed for his/her flight fair caused by a severe arrival delay. Consequently, we investigated the choices that the traveller can choose. Based on our analysis, we finally recommended flights that are most likely to have long delays.  
+
+> Factors we consider:  
+- Season  
+- Daytime  
+- Airport
+- Airline  
+- Destination  
+
+> Dataset source: https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity  
 
 # Key issues
-
 
 ```{r libraries, include=FALSE}
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
@@ -66,12 +81,14 @@ c) Airplane information and Carrier
 >
 d) Destinations and distances from NYC to destinations
 
-# Technically correct data
+# Data cleaning and preprocessing
+
+##Technically correct data
 
 > There is no missing value and error in the dataset, but time variables are not 
 in the right type, and thus we need to preprocess the variables based on our needs.
 
-## Change time data
+### Change time data
 
 ```{r time, message=FALSE, warning=FALSE}
 # We changed the date into date type, scheduled and arrival time into date-time 
@@ -87,7 +104,7 @@ nyc_time <- nyc_flights %>%
     arrived_nyc_time = scheduled + air_time)
 ```
 
-## Add daytime
+### Add daytime
 
 ```{r daytime, message=FALSE, warning=FALSE}
 # We divided schedule time into 4 more readable categories: Morning, Afternoon, Evening and Night
@@ -101,7 +118,7 @@ nyc_day <- nyc_time %>%
   )
 ```
 
-## Add season 
+### Add season 
 
 ```{r season, message=FALSE, warning=FALSE}
 # We classified month variable into 4 seasons to check seasonality later.
@@ -116,7 +133,7 @@ nyc_season <- nyc_day %>%
   )
 ```
 
-## Change airport code
+### Change airport code
 
 ```{r airport, message=FALSE, warning=FALSE}
 # We added destination airport information, such as airport name, the corresponding city, 
@@ -132,7 +149,7 @@ nyc_airport <- nyc_season %>%
   ungroup()
 ```
 
-## Delay
+### Delay time
 
 ```{r delay difference, message=FALSE, warning=FALSE}
 nyc_delay <- nyc_airport %>% 
@@ -147,7 +164,7 @@ nyc_delay <- nyc_airport %>%
   )
 ```
 
-## Flight distance
+### Flight distance
 
 ```{r flight distance, message=FALSE, warning=FALSE}
 # We divided carry distance into 3 categories: short, mid and long distance flight 
@@ -163,7 +180,7 @@ nyc_dis <- nyc_delay %>%
   )
 ```
 
-# EDA
+# Exploratory data analysis
 
 ```{r final data output, message=FALSE, warning=FALSE}
 # We manually paired carrier code with the airline name here
@@ -213,16 +230,21 @@ nyc_clean %>%
   )
 ```
 
-########tableau
+> After data preprocessing, we did our visualization work on tableau. The url is as follows:  
+https://prod-uk-a.online.tableau.com/#/site/jiangxiayussite/workbooks/73667/views
+
+
 # Hypotheses test
-> We set up the following hypotheses for the test:     
+> For statistical techniques part, we conducted confidence intervals and hypothesis testing to understand and determine the impact of variables on delay.
+
+> Firstly, We set up the following hypotheses for the test:     
 >
 $H_0: \mu_{JFK}-\mu_{LGA}= 0$ vs 
 >
 $H_1: \mu_{JFK}-\mu_{LGK}\neq 0$   
 
 ```{r mean delays by airport}
-#generate confidence intervals to find out if there is a difference in mean arrival delays across airports
+# generate confidence intervals to find out if there is a difference in mean arrival delays across airports
 nyc_clean %>%
  group_by(origin) %>%
   summarize(
@@ -235,9 +257,9 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#EWR certainly seems to have the highest arrival associated delays. 
+# EWR certainly seems to have the highest arrival associated delays. 
 
-### Hypothesis Testing of EWR & LGA airports  
+# Hypothesis Testing of EWR & LGA airports  
 # hypothesis testing using t.test() 
 origin_hyp <-nyc_clean %>% 
   filter(origin != "JFK")
@@ -258,6 +280,7 @@ t.test(arr_delay~origin, data=thi_hyp) #insignificant difference in means betwee
   
 From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
 
+> From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
 
 ```{r mean delays by season}
 #generate confidence intervals to find out if there is a difference in mean arrival delays across seasons
@@ -272,9 +295,9 @@ nyc_clean %>%
     t_critical = qt(0.975, count-1),
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
-
-#summer clearly has the highest delays. also note that most flights happen in winter and not in summer which is what we would expect.
 ```
+> From above, summer clearly has the highest average delays. Moreover, the confidence intervals do NOT overlap, and there is significant delay difference among seasons, and thus, it is reasonable to focus on flights in summer.
+
 
 ```{r mean delays by time of day}
 #generate confidence intervals to find out if there is a difference in mean arrival delays across time of day
@@ -290,9 +313,9 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#evening flights have huge difference in delay times. let's look into winter evening times
+#evening flights have huge difference in delay times. let's look into summer evening times
 nyc_clean %>%
-  filter(season == "Winter") %>%
+  filter(season == "Summer") %>%
  group_by(daytime) %>%
   summarize(
     median_delay = median(arr_delay, na.rm=TRUE),
@@ -303,9 +326,10 @@ nyc_clean %>%
     t_critical = qt(0.975, count-1),
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
-#night time CI has huge range due to very small number of flights occuring at this time of day in winter. Evening still looks to be most consistently delayed with larger delay times.
 
 ```
+
+> We can be 95% confident that Evening time is most consistently delayed with larger delay times. Since CI do NOT overlap here, we can focus on Evening flights in summer. 
 
 ```{r carriers}
 #check carrier delays
@@ -321,26 +345,33 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#carrier FL is one of the only carriers with positive median delay time so it points us towards believing that it is causing many delays
+nyc_clean
+
+# In this EDA, we want to have an initial overview of the data, especially which airline has the highest level of delay, so we choose the airline with the longest average delay over the year, which is HA
+
 nyc_clean %>%
- filter(carrier == "FL",arr_delay >=0) %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
   count()
 
 nyc_clean %>%
- filter(carrier == "FL",arr_delay >=0) %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
   group_by(origin) %>%
-  count() #all delays are at LGA
+  count() 
 
 nyc_clean %>%
- filter(carrier == "FL",origin == "LGA") %>%
-  group_by(dest) %>% #most flights are to atlanta
+ filter(carrier == "HA",origin == "JFK") %>%
+  group_by(dest) %>%
   count()
 
 nyc_clean %>%
- filter(carrier == "FL",origin == "LGA", dest == "ATL", arr_delay > 0) %>%
-  arrange(desc(arr_delay)) #many long delays!!!
+ filter(carrier == "HA",origin == "JFK", dest == "HNL", arr_delay > 0) %>%
+  arrange(desc(arr_delay)) 
 
-#mostly delayed are during the evening, season ranges
-  
 ```
+> From above chart, we can see that there is an outlier, whose delay time is 1301(almost 22 hours), and this outlier makes the average of delay time the largest. So, when conducting further analysis, we deleted this outlier.
 
+# Critique
+> Our data was limited to 2013 flights from NY only to destinations within the US, which might have created bias in our sample as it’s very specific and not representative of the entire operations of the NY airports.  
+- Since the dataset is from 2013 it is quite outdated. It is likely that a lot has changed since then and we would have to find a more recent dataset and carry out a similar analysis to see what has changed especially after covid.  
+- When looking at the reason behind delays of particular carriers or seasons we should consider confounding variables for example 2013 may have had unpredictable weather conditions or a particular airline was going under structural change causing it to have many delays for that particular year. This creates bias in the findings.
+- The presence of outliers in the data and skewed distributions might have affected findings on average delays causing bias in our final findings
