@@ -81,7 +81,7 @@ c) Airplane information and Carrier
 >
 d) Destinations and distances from NYC to destinations
 
-# Data cleaning
+# Data cleaning and preprocessing
 
 ##Technically correct data
 
@@ -215,7 +215,6 @@ nyc_skim <- nyc_clean %>%
 
 skim(nyc_skim)
 ```
-
 # Visualization
 ```{r data visualization}
 nyc_clean %>% 
@@ -231,16 +230,21 @@ nyc_clean %>%
   )
 ```
 
-#tableau
+> After data preprocessing, we did our visualization work on tableau. The url is as follows:  
+https://prod-uk-a.online.tableau.com/#/site/jiangxiayussite/workbooks/73667/views
+
+
 # Hypotheses test
-> We set up the following hypotheses for the test:     
+> For statistical techniques part, we conducted confidence intervals and hypothesis testing to understand and determine the impact of variables on delay.
+
+> Firstly, We set up the following hypotheses for the test:     
 >
 $H_0: \mu_{JFK}-\mu_{LGA}= 0$ vs 
 >
 $H_1: \mu_{JFK}-\mu_{LGK}\neq 0$   
 
 ```{r mean delays by airport}
-#generate confidence intervals to find out if there is a difference in mean arrival delays across airports
+# generate confidence intervals to find out if there is a difference in mean arrival delays across airports
 nyc_clean %>%
  group_by(origin) %>%
   summarize(
@@ -253,9 +257,9 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#EWR certainly seems to have the highest arrival associated delays. 
+# EWR certainly seems to have the highest arrival associated delays. 
 
-### Hypothesis Testing of EWR & LGA airports  
+# Hypothesis Testing of EWR & LGA airports  
 # hypothesis testing using t.test() 
 origin_hyp <-nyc_clean %>% 
   filter(origin != "JFK")
@@ -289,9 +293,9 @@ nyc_clean %>%
     t_critical = qt(0.975, count-1),
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
-
-#summer clearly has the highest delays. also note that most flights happen in winter and not in summer which is what we would expect.
 ```
+> From above, summer clearly has the highest average delays. Moreover, the confidence intervals do NOT overlap, and there is significant delay difference among seasons, and thus, it is reasonable to focus on flights in summer.
+
 
 ```{r mean delays by time of day}
 #generate confidence intervals to find out if there is a difference in mean arrival delays across time of day
@@ -307,9 +311,9 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#evening flights have huge difference in delay times. let's look into winter evening times
+#evening flights have huge difference in delay times. let's look into summer evening times
 nyc_clean %>%
-  filter(season == "Winter") %>%
+  filter(season == "Summer") %>%
  group_by(daytime) %>%
   summarize(
     median_delay = median(arr_delay, na.rm=TRUE),
@@ -320,9 +324,10 @@ nyc_clean %>%
     t_critical = qt(0.975, count-1),
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
-#night time CI has huge range due to very small number of flights occuring at this time of day in winter. Evening still looks to be most consistently delayed with larger delay times.
 
 ```
+
+> We can be 95% confident that Evening time is most consistently delayed with larger delay times. Since CI do NOT overlap here, we can focus on Evening flights in summer. 
 
 ```{r carriers}
 #check carrier delays
@@ -338,26 +343,30 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#carrier FL is one of the only carriers with positive median delay time so it points us towards believing that it is causing many delays
+nyc_clean
+
+# In this EDA, we want to have an initial overview of the data, especially which airline has the highest level of delay, so we choose the airline with the longest average delay over the year, which is HA
+
 nyc_clean %>%
- filter(carrier == "FL",arr_delay >=0) %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
   count()
 
 nyc_clean %>%
- filter(carrier == "FL",arr_delay >=0) %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
   group_by(origin) %>%
-  count() #all delays are at LGA
+  count() 
 
 nyc_clean %>%
- filter(carrier == "FL",origin == "LGA") %>%
-  group_by(dest) %>% #most flights are to atlanta
+ filter(carrier == "HA",origin == "JFK") %>%
+  group_by(dest) %>%
   count()
 
 nyc_clean %>%
- filter(carrier == "FL",origin == "LGA", dest == "ATL", arr_delay > 0) %>%
-  arrange(desc(arr_delay)) #many long delays!!!
+ filter(carrier == "HA",origin == "JFK", dest == "HNL", arr_delay > 0) %>%
+  arrange(desc(arr_delay)) 
 
-#mostly delayed are during the evening, season ranges
-  
 ```
+> From above chart, we can see that there is an outlier, whose delay time is 1301(almost 22 hours), and this outlier makes the average of delay time the largest. So, when conducting further analysis, we deleted this outlier.
+
+# Discussion and critique
 
