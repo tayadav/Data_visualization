@@ -22,10 +22,10 @@ For example, are flights during the evening more delayed than during the morning
 Several hypothesis tests and confidence intervals were conducted with the final insight that arrival delays can actually be explained by several variables from the dataset. 
 Such variables are:
 
-- Season of the year:
-- Time of day:
-- Airlines:
-- Airport: 
+- Season of the year
+- Time of day
+- Airlines
+- Airport
 - Destination
 
 ## Analysis
