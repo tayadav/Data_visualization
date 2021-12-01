@@ -235,15 +235,28 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#EWR certainly seems to have the highest arrival associated delays. Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+#EWR certainly seems to have the highest arrival associated delays. 
 
 ### Hypothesis Testing of EWR & LGA airports  
 # hypothesis testing using t.test() 
 origin_hyp <-nyc_clean %>% 
   filter(origin != "JFK")
 
-t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. JFK has higher delays
+sec_hyp <-nyc_clean %>% 
+  filter(origin != "LGA")
+
+t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. EWR has higher delays than LGA
+
+#Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+
+thi_hyp <-nyc_clean %>% 
+  filter(origin != "EWR")
+
+t.test(arr_delay~origin, data=sec_hyp) #significant difference in means. EWR has higher delays than JFK
+t.test(arr_delay~origin, data=thi_hyp) #insignificant difference in means between LGA and JFK
 ```
+  
+From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
 
 
 ```{r mean delays by season}
