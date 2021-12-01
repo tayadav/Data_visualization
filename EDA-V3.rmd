@@ -27,10 +27,25 @@ knitr::opts_chunk$set(
 
 # Background
 
-> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify certain routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.
+> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify specific routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.  
+
+
+> We decided to focus on air travel, starting with New York, whose three major airports connect to all parts of the US. We ,therefore, choose to analyse the performance of New York John F. Kennedy, LaGuardia and Newark airports for domestic flights in the United States in 2013. Though this latest available dataset of US is in 2013, which may not necessarily reflect the post-Covid era, it should be sufficient to figure out when flights are more likely to be delayed.  
+
+> Key issues:
+>
+This study is based on the perspective of travelers who are price-sensitive or on a limited budget with flexible travel schedules. We focus on delay time so that he or she can be reimbursed for his/her flight fair caused by a severe arrival delay. Consequently, we investigated the choices that the traveller can choose. Based on our analysis, we finally recommended flights that are most likely to have long delays.  
+
+> Factors we consider:  
+- Season  
+- Daytime  
+- Airport
+- Airline  
+- Destination  
+
+> Dataset source: https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity  
 
 # Key issues
-
 
 ```{r libraries, include=FALSE}
 library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
@@ -66,12 +81,14 @@ c) Airplane information and Carrier
 >
 d) Destinations and distances from NYC to destinations
 
-# Technically correct data
+# Data cleaning
+
+##Technically correct data
 
 > There is no missing value and error in the dataset, but time variables are not 
 in the right type, and thus we need to preprocess the variables based on our needs.
 
-## Change time data
+### Change time data
 
 ```{r time, message=FALSE, warning=FALSE}
 # We changed the date into date type, scheduled and arrival time into date-time 
@@ -87,7 +104,7 @@ nyc_time <- nyc_flights %>%
     arrived_nyc_time = scheduled + air_time)
 ```
 
-## Add daytime
+### Add daytime
 
 ```{r daytime, message=FALSE, warning=FALSE}
 # We divided schedule time into 4 more readable categories: Morning, Afternoon, Evening and Night
@@ -101,7 +118,7 @@ nyc_day <- nyc_time %>%
   )
 ```
 
-## Add season 
+### Add season 
 
 ```{r season, message=FALSE, warning=FALSE}
 # We classified month variable into 4 seasons to check seasonality later.
@@ -116,7 +133,7 @@ nyc_season <- nyc_day %>%
   )
 ```
 
-## Change airport code
+### Change airport code
 
 ```{r airport, message=FALSE, warning=FALSE}
 # We added destination airport information, such as airport name, the corresponding city, 
@@ -132,7 +149,7 @@ nyc_airport <- nyc_season %>%
   ungroup()
 ```
 
-## Delay
+### Delay time
 
 ```{r delay difference, message=FALSE, warning=FALSE}
 nyc_delay <- nyc_airport %>% 
@@ -147,7 +164,7 @@ nyc_delay <- nyc_airport %>%
   )
 ```
 
-## Flight distance
+### Flight distance
 
 ```{r flight distance, message=FALSE, warning=FALSE}
 # We divided carry distance into 3 categories: short, mid and long distance flight 
@@ -163,7 +180,7 @@ nyc_dis <- nyc_delay %>%
   )
 ```
 
-# EDA
+# Exploratory data analysis
 
 ```{r final data output, message=FALSE, warning=FALSE}
 # We manually paired carrier code with the airline name here
@@ -198,6 +215,7 @@ nyc_skim <- nyc_clean %>%
 
 skim(nyc_skim)
 ```
+
 # Visualization
 ```{r data visualization}
 nyc_clean %>% 
@@ -213,7 +231,7 @@ nyc_clean %>%
   )
 ```
 
-########tableau
+#tableau
 # Hypotheses test
 > We set up the following hypotheses for the test:     
 >
@@ -235,16 +253,28 @@ nyc_clean %>%
     lower_ci = mean_delay - t_critical*se_delay,
     upper_ci = mean_delay + t_critical*se_delay)
 
-#EWR certainly seems to have the highest arrival associated delays. Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+#EWR certainly seems to have the highest arrival associated delays. 
 
 ### Hypothesis Testing of EWR & LGA airports  
 # hypothesis testing using t.test() 
 origin_hyp <-nyc_clean %>% 
   filter(origin != "JFK")
 
-t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. JFK has higher delays
+sec_hyp <-nyc_clean %>% 
+  filter(origin != "LGA")
+
+t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. EWR has higher delays than LGA
+
+#Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+
+thi_hyp <-nyc_clean %>% 
+  filter(origin != "EWR")
+
+t.test(arr_delay~origin, data=sec_hyp) #significant difference in means. EWR has higher delays than JFK
+t.test(arr_delay~origin, data=thi_hyp) #insignificant difference in means between LGA and JFK
 ```
 
+> From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
 
 ```{r mean delays by season}
 #generate confidence intervals to find out if there is a difference in mean arrival delays across seasons
