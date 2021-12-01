@@ -13,7 +13,7 @@ Therefore, we decide to analyse airport activity in JFK, LaGuardia and Newark Ai
 Dataset: <https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity> 
 
 ## Cleaning 
-The first step of this project was ensuring consistency among the data. Furthermore, variables were added (e.g., daytime, season, time caught up, etc.) to better assess a significant difference in delays between flights. 
+The first step of this project was ensuring consistency among the data. Furthermore, variables were added (e.g., daytime, season, time caught up, etc.) to better assess a significant difference in delays between flights, but also to improve visualization opportunities through converting airport codes into actual city names incl. coordinates.  
 
 ## Statistical Significance
 Before any analysis could be conducted, we had to assess whether there is actually a statistically significant difference between different flights according to their parameters. Naturally, we only focused on variables that can be influenced by travellers, as the goal is helping travellers to find cheap flights. 
