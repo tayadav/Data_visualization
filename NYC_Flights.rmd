@@ -179,9 +179,10 @@ nyc_dis <- nyc_delay %>%
   )
 ```
 
-# Exploratory data analysis
 
-```{r final data output, message=FALSE, warning=FALSE}
+### Airlines
+
+```{r Airlines, message=FALSE, warning=FALSE}
 # We manually paired carrier code with the airline name here
 nyc_clean <- nyc_dis %>% 
   mutate(
@@ -203,11 +204,15 @@ nyc_clean <- nyc_dis %>%
       (carrier == "WN" ) ~ "Southwest Airlines",
       (carrier == "YV" ) ~ "Mesa Airlines"
     ))
+```
+  
+# Exploratory data analysis
 
+```{r final data output, message=FALSE, warning=FALSE}
 glimpse(nyc_clean)
 
 nyc_skim <- nyc_clean %>% 
-  select(-air_time)
+  select(-air_time) #duration type of data is not supported by skim function
 
 skim(nyc_skim)
 ```
@@ -215,7 +220,7 @@ skim(nyc_skim)
 ```{r data visualization}
 nyc_clean %>% 
   #filter outlier
-  filter(dep_delay < 850) %>% 
+  filter(dep_delay < 600) %>% #10 hour delay
   ggplot(aes(x=origin,y=dep_delay))+
   geom_boxplot()+
   labs(
@@ -224,12 +229,26 @@ nyc_clean %>%
     x="Airport",
     y="Departure delay"
   )
+
+nyc_clean %>% 
+  #plot more reasonable range of delay of one hour
+  filter(dep_delay < 60) %>% #1 hour delay
+  ggplot(aes(x=origin,y=dep_delay))+
+  geom_boxplot()+
+  labs(
+    title="Box plot for departure delay time by departure airport",
+    subtitle= "Figure 2",
+    x="Airport",
+    y="Departure delay"
+  )
+
+write.csv(nyc_clean,file="nyc_flights_cleaned.csv", row.names = FALSE)
 ```
 
-> After data preprocessing, we did our visualization work on tableau. The url is as follows:  
-https://prod-uk-a.online.tableau.com/#/site/jiangxiayussite/workbooks/73667/views
-
-
+> After data preprocessing, we did our visualization work on Tableau. We used file "nyc_flights_cleaned.csv" in Tableau. The url is as follows:  
+https://prod-uk-a.online.tableau.com/#/site/jiangxiayussite/workbooks/73667/views   
+If for permission or account problems you cannot visit this link, please refer to the PPT file in our git repo.  
+   
 # Hypotheses test
 > For statistical techniques part, we conducted confidence intervals and hypothesis testing to understand and determine the impact of variables on delay.
 
@@ -364,30 +383,32 @@ nyc_clean %>%
   arrange(desc(arr_delay)) 
 
 ```
-> From above chart, we can see that there is an outlier, whose delay time is 1301(almost 22 hours), and this outlier makes the average of delay time the largest. So, when conducting further analysis, we deleted this outlier.
+> From above chart, we can see that there is an outlier, whose delay time is 1301(almost 22 hours), and this outlier makes the average of delay time the largest. So, we would be aware of this outlier issue and check whether our final results are from consistent delays or one highly unexpected extreme delay.
 
 # Analysis
 
 >Once we confirmed the statistically significant difference among variables with respect to flight delay, we started thinking about an approach for choosing the optimal flights. Similar to the overall approach of our project, we decided to go with a sequential Top-Down approach. This implies that we started with broad parameters and further narrowed it down, while incorporating previous decisions on parameters in selecting the next value.   
 
->As an example, we started by identifying the season and daytime with the largest average arrival delays, which occur on Summer Evenings. The next step was identifying the airport with the largest average delay, but instead of general delays per airport, we only assessed the average delay per airport during Summer Evening.   
+>As an example, we started by identifying the season and daytime with the largest average arrival delays, which occur on Summer Evenings. The next step was identifying the airlines operating in such season and daytime with highest level of average delay. In this part, we put airport before airline because most airlines have hub airports. Choosing an airline could already imply a choice for the airport. Thus, we look at airport after we choose the top 25% most delayed airlines. Then we look at airports with the largest average delay. Instead of general delays per airport, we only assessed the average delay per airport during Summer Evening among the identified airlines to have a more focus approach.   
 
->This process runs through our entire analysis which each decision depending on the previous selection of parameters.  
+>This process runs through our entire analysis which each decision depending on the previous selection of parameters. We also took advantage of the easy usability of Tableau filters and tried many experiments with our approaches and finally come down to the one below.   
 
 # Conclusion and Recommendation
 
->The end result is a recommendation of one flight for short-, mid-, and long-term distance where travellers are likely to experience large delays, and thus a cash reimbursement.  
+>The end result is a recommendation of one flight each for short-, mid-, and long-term distances where travellers are likely to experience large delays, and thus a cash reimbursement.  
 
 >All flights are going from **Newark Airport** during **Summer Evening (6pm - 12pm)**.
 >
-- Short-distance flight: **Columbus, OH (ExpressJet)**
-- Mid-distance flight: **Minneapolis, MN (ExpressJet)**
-- Long-distance flight: **San Francisco, CA (Virgin America)**
+- Short-distance flight: **Columbus, OH (with ExpressJet)**
+- Mid-distance flight: **Minneapolis, MN (with ExpressJet)**
+- Long-distance flight: **San Francisco, CA (with Virgin America)**  
 
 # Critique
-> Our data was limited to 2013 flights from NY only to destinations within the US, which might have created bias in our sample as it’s very specific and not representative of the entire operations of the NY airports.  
+> Our data was limited to 2013 flights from NY only to destinations within the US, which might have created bias in our sample as it’s very specific and not representative of the entire operations of the NY airports. However, from the perspective of planning ahead for US in-bound travels post-covid, it could be very helpful in setting up a baseline. Such baseline in delays could then be used with additional information post-COVID to further analyse how likely travelers could be reimbursed with cash flying on such routes with these airlines.     
 >
-- Since the dataset is from 2013 it is quite outdated. It is likely that a lot has changed since then and we would have to find a more recent dataset and carry out a similar analysis to see what has changed especially after covid.    
-- When looking at the reason behind delays of particular carriers or seasons we should consider confounding variables for example 2013 may have had unpredictable weather conditions or a particular airline was going under structural change causing it to have many delays for that particular year. This creates bias in the findings.  
-- The presence of outliers in the data and skewed distributions might have affected findings on average delays causing bias in our final findings  
+- Since the dataset is from 2013 it is quite outdated. It is likely that a lot has changed since then. However, the approach, methodology and visualisation skills we have demonstrated throughout this project will still be helpful if we could have found a more recent dataset. From more updated data, we could certainly carry out a similar analysis to see what has changed especially after covid.    
+- When looking at the reason behind delays of particular carriers or seasons we should consider confounding variables for example 2013 may have had unpredictable weather conditions or a particular airline was going under structural change causing it to have many delays for that particular year. This creates bias in the findings. However, since our analysis are mostly for **Summer Evenings**, we would not have to worry about Blizzard, frozen runway or iced wings. We would have less probability to observe such biases.    
+- The presence of outliers in the data and skewed distributions might have affected our findings on average delays. However, we also think it might not be worthwhile to spend 22 hours trapped in the airport. Therefore, we would still focus on delays that are within 3 to 5 hours, when travelers could have a good rest at the airport but not irritated by the long-hour delay.    
+
+
 
