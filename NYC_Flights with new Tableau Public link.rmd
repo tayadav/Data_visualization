@@ -1,0 +1,417 @@
+---
+title: "Data Viz Group Project"
+author: "Study Group 1: Jiangxia Yu; Marianna Taki; Yuting Wu; Ferdinand Wohlenberg; Massimiliano Ursig; Tanisha Yadav"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    number_sections: true
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.align = "center"
+)
+```
+
+# Background
+
+> In the United States, airplanes are a common way to travel because of the large territory. Nowadays, finding the lowest priced airline tickets is a common means, for example, passengers on flights delayed for more than 3 hours may receive substantial monetary compensation, which may be a good try for the price-sensitive passengers. Therefore, we decided to investigate air travel to see if we could identify specific routes where large delays are likely to occur, thus making it highly possible that passengers will receive monetary compensation.   
+>
+With many LBS students travelling to the US for their GIFTs, and potentially wanting to travel around before/after the GIFTs, we thought it would be interesting to analyze travel hacks to suggest options for low-cost air travel. Some members of our group recently received monetary compensation for delayed flights, thus we asked ourselves whether it is possible to deliberately identify flight delays, receive monetary compensation and consequently travel with a low budget.
+
+> We decided to focus on air travel, starting with New York, whose three major airports connect to all parts of the US. We ,therefore, choose to analyse the performance of New York John F. Kennedy, LaGuardia and Newark airports for domestic flights in the United States in 2013. Though this latest available dataset of US is in 2013, which may not necessarily reflect the post-Covid era, it should be sufficient to figure out when flights are more likely to be delayed.  
+
+# Key issues:
+>
+This study is based on the perspective of travelers who are price-sensitive or on a limited budget with flexible travel schedules. We focus on delay time so that he or she can be reimbursed for his/her flight fair caused by a severe arrival delay. Consequently, we investigated the choices that the traveller can choose. Based on our analysis, we finally recommended flights that are most likely to have long delays.  
+
+> Factors we consider:  
+- Season  
+- Daytime  
+- Airport
+- Airline  
+- Destination  
+
+> Dataset source: https://www.kaggle.com/sveneschlbeck/new-york-city-airport-activity   
+
+```{r libraries, include=FALSE}
+library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
+library(lubridate)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(gridExtra)
+library(countrycode)
+library(airportr)
+```
+
+# Load the data
+
+```{r load the data, message=FALSE, warning=FALSE}
+#load data
+nyc_flights <- read.csv(here::here("data", "nyc-flights.csv")) %>% 
+  clean_names()
+
+glimpse(nyc_flights)
+skim(nyc_flights)
+```
+
+## Check variables
+
+> In this dataset, we have the following information:  
+>
+a) Flight scheduled date and time  
+>
+b) Flight delayed time in Departure and Arrival
+>
+c) Airplane information and Carrier  
+>
+d) Destinations and distances from NYC to destinations
+
+# Data cleaning and preprocessing
+
+##Technically correct data
+
+> There is no missing value and error in the dataset, but time variables are not 
+in the right type, and thus we need to preprocess the variables based on our needs.
+
+### Change time data
+
+```{r time, message=FALSE, warning=FALSE}
+# We changed the date into date type, scheduled and arrival time into date-time 
+# type and calculated the duration of air time in minutes.
+nyc_time <- nyc_flights %>%
+  mutate(
+    ymd = paste(year, month, day, sep = "-"),
+    ymd = ymd(ymd),
+    scheduled_time = paste(hour, minute, sep = "/"),
+    scheduled_time = hm(scheduled_time),
+    scheduled = ymd_hms(ymd + scheduled_time),
+    air_time = dminutes(air_time),
+    arrived_nyc_time = scheduled + air_time)
+```
+
+### Add daytime
+
+```{r daytime, message=FALSE, warning=FALSE}
+# We divided schedule time into 4 more readable categories: Morning, Afternoon, Evening and Night
+nyc_day <- nyc_time %>% 
+  mutate(
+    daytime = case_when(
+      (scheduled_time >= hm("00:00") & (scheduled_time < hm("06:00"))) ~ "Night",
+      (scheduled_time >= hm("06:00") & (scheduled_time < hm("12:00"))) ~ "Morning",
+      (scheduled_time >= hm("12:00") & (scheduled_time < hm("18:00"))) ~ "Afternoon",
+      (scheduled_time >= hm("18:00") & (scheduled_time <= hm("24:00"))) ~ "Evening")
+  )
+```
+
+### Add season 
+
+```{r season, message=FALSE, warning=FALSE}
+# We classified month variable into 4 seasons to check seasonality later.
+nyc_season <- nyc_day %>% 
+  mutate(
+    season = case_when(
+      (month >= 3 & (month <= 5)) ~ "Spring",
+      (month >= 6 & (month <= 8)) ~ "Summer",
+      (month >= 9 & (month <= 11)) ~ "Autumn",
+       month >= 12 ~ "Winter",
+       month <= 2 ~ "Winter")
+  )
+```
+
+### Change airport code
+
+```{r airport, message=FALSE, warning=FALSE}
+# We added destination airport information, such as airport name, the corresponding city, 
+# latitude and longitude based on airport code.
+nyc_airport <- nyc_season %>% 
+  group_by(dest) %>% 
+  mutate(
+    des_airport_name = airport_lookup(dest, input_type = "IATA", output_type = "name"),
+    des_city = airport_lookup(dest, input_type = "IATA", output_type = "city"),
+    lat = airport_location(dest, input_type = "IATA")[[1]],
+    log = airport_location(dest, input_type = "IATA")[[2]]
+  ) %>% 
+  ungroup()
+```
+
+### Delay time
+
+```{r delay difference, message=FALSE, warning=FALSE}
+nyc_delay <- nyc_airport %>% 
+  mutate(
+    catch_up = dep_delay - arr_delay,
+    severity = case_when(
+      dep_delay <= 180 ~ "Minor",
+      dep_delay > 180 ~ "Severe"
+    )
+    #this variable calculates how much time has been caught up during flight time to make up for the delay
+    #positive value would mean this flight did catch up
+  )
+```
+
+### Flight distance
+
+```{r flight distance, message=FALSE, warning=FALSE}
+# We divided carry distance into 3 categories: short, mid and long distance flight 
+# to figure out whether carry distance influence delay time, eg, mid-range flight
+# are more likely to catch up
+nyc_dis <- nyc_delay %>% 
+  mutate(
+    long_dis = case_when(
+      distance <= 1000 ~ "short",
+      (distance > 1000 & distance <= 2000) ~ "mid-range",
+      distance > 2000 ~ "long"
+    )
+  )
+```
+
+
+### Airlines
+
+```{r Airlines, message=FALSE, warning=FALSE}
+# We manually paired carrier code with the airline name here
+nyc_clean <- nyc_dis %>% 
+  mutate(
+    carrier_long = case_when(
+      (carrier == "AA" ) ~ "American Airlines",
+      (carrier == "AS" ) ~ "Alaska Airlines",
+      (carrier == "B6" ) ~ "jetBlue",
+      (carrier == "DL" ) ~ "Delta Air Lines",
+      (carrier == "EV" ) ~ "ExpressJet",
+      (carrier == "FL" ) ~ "AirTran Airways",
+      (carrier == "F9" ) ~ "Frontier Airlines",
+      (carrier == "HA" ) ~ "Hawaiian Airlines",
+      (carrier == "MQ" ) ~ "American Eagle Airlines",
+      (carrier == "OO" ) ~ "SkyWest Airlines",
+      (carrier == "9E" ) ~ "Endeavor Air",
+      (carrier == "UA" ) ~ "United Airlines",
+      (carrier == "US" ) ~ "US Airways",
+      (carrier == "VX" ) ~ "Virgin America",
+      (carrier == "WN" ) ~ "Southwest Airlines",
+      (carrier == "YV" ) ~ "Mesa Airlines"
+    ))
+```
+  
+# Exploratory data analysis
+
+```{r final data output, message=FALSE, warning=FALSE}
+glimpse(nyc_clean)
+
+nyc_skim <- nyc_clean %>% 
+  select(-air_time) #duration type of data is not supported by skim function
+
+skim(nyc_skim)
+```
+# Visualization
+```{r data visualization}
+nyc_clean %>% 
+  #filter outlier
+  filter(dep_delay < 600) %>% #10 hour delay
+  ggplot(aes(x=origin,y=dep_delay))+
+  geom_boxplot()+
+  labs(
+    title="Box plot for departure delay time by departure airport",
+    subtitle= "Figure 1",
+    x="Airport",
+    y="Departure delay"
+  )
+
+nyc_clean %>% 
+  #plot more reasonable range of delay of one hour
+  filter(dep_delay < 60) %>% #1 hour delay
+  ggplot(aes(x=origin,y=dep_delay))+
+  geom_boxplot()+
+  labs(
+    title="Box plot for departure delay time by departure airport",
+    subtitle= "Figure 2",
+    x="Airport",
+    y="Departure delay"
+  )
+
+write.csv(nyc_clean,file="nyc_flights_cleaned.csv", row.names = FALSE)
+```
+
+> After data preprocessing, we did our visualization work on Tableau. We used file "nyc_flights_cleaned.csv" in Tableau. The url is as follows:  
+https://prod-uk-a.online.tableau.com/#/site/jiangxiayussite/workbooks/73667/views   
+If for permission or account problems you cannot visit this link, please refer to the PPT file in our git repo.
+The url to our Tableau Public accessible workbook is as follows:
+https://public.tableau.com/views/NYCFlights2246/NYCFlights 
+
+   
+# Hypotheses test
+> For statistical techniques part, we conducted confidence intervals and hypothesis testing to understand and determine the impact of variables on delay.
+
+> Firstly, We set up the following hypotheses for the test:     
+>
+$H_0: \mu_{JFK}-\mu_{LGA}= 0$ vs 
+>
+$H_1: \mu_{JFK}-\mu_{LGK}\neq 0$   
+
+```{r mean delays by airport}
+# generate confidence intervals to find out if there is a difference in mean arrival delays across airports
+nyc_clean %>%
+ group_by(origin) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+# EWR certainly seems to have the highest arrival associated delays. 
+
+# Hypothesis Testing of EWR & LGA airports  
+# hypothesis testing using t.test() 
+origin_hyp <-nyc_clean %>% 
+  filter(origin != "JFK")
+
+sec_hyp <-nyc_clean %>% 
+  filter(origin != "LGA")
+
+t.test(arr_delay~origin, data=origin_hyp) #significant difference in means. EWR has higher delays than LGA
+
+#Since CI for JFK and LGA overlap lets carry out a hypothesis test to see if there is a difference between them.
+
+thi_hyp <-nyc_clean %>% 
+  filter(origin != "EWR")
+
+t.test(arr_delay~origin, data=sec_hyp) #significant difference in means. EWR has higher delays than JFK
+t.test(arr_delay~origin, data=thi_hyp) #insignificant difference in means between LGA and JFK
+```
+  
+From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
+
+> From above hypothesis testing, we can know that between EWR and LGA or between EWR and JFK, the average delay difference is significant. EWR or Newark Liberty Airport has significantly more arrival delay than the other two airports in NYC.
+
+```{r mean delays by season}
+#generate confidence intervals to find out if there is a difference in mean arrival delays across seasons
+nyc_clean %>%
+ group_by(season) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+```
+> From above, summer clearly has the highest average delays. Moreover, the confidence intervals do NOT overlap, and there is significant delay difference among seasons, and thus, it is reasonable to focus on flights in summer.
+
+
+```{r mean delays by time of day}
+#generate confidence intervals to find out if there is a difference in mean arrival delays across time of day
+nyc_clean %>%
+ group_by(daytime) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+#evening flights have huge difference in delay times. let's look into summer evening times
+nyc_clean %>%
+  filter(season == "Summer") %>%
+ group_by(daytime) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+```
+
+> We can be 95% confident that Evening time is most consistently delayed with larger delay times. Since CI do NOT overlap here, we can focus on Evening flights in summer. 
+
+```{r carriers}
+#check carrier delays
+nyc_clean %>%
+ group_by(carrier) %>%
+  summarize(
+    median_delay = median(arr_delay, na.rm=TRUE),
+    mean_delay = mean(arr_delay, na.rm=TRUE),
+    sd_delay = sd(arr_delay, na.rm=TRUE),
+    count = n(),
+    se_delay = sd_delay / sqrt(count),
+    t_critical = qt(0.975, count-1),
+    lower_ci = mean_delay - t_critical*se_delay,
+    upper_ci = mean_delay + t_critical*se_delay)
+
+nyc_clean
+
+# In this EDA, we want to have an initial overview of the data, especially which airline has the highest level of delay, so we choose the airline with the longest average delay over the year, which is HA
+
+nyc_clean %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
+  count()
+
+nyc_clean %>%
+ filter(carrier == "HA",arr_delay >=0) %>%
+  group_by(origin) %>%
+  count() 
+
+nyc_clean %>%
+ filter(carrier == "HA",origin == "JFK") %>%
+  group_by(dest) %>%
+  count()
+
+nyc_clean %>%
+ filter(carrier == "HA",origin == "JFK", dest == "HNL", arr_delay > 0) %>%
+  arrange(desc(arr_delay)) 
+
+```
+> From above chart, we can see that there is an outlier, whose delay time is 1301(almost 22 hours), and this outlier makes the average of delay time the largest. So, we would be aware of this outlier issue and check whether our final results are from consistent delays or one highly unexpected extreme delay.
+
+# Analysis
+
+>Once we confirmed the statistically significant difference among variables with respect to flight delay, we started thinking about an approach for choosing the optimal flights. Similar to the overall approach of our project, we decided to go with a sequential Top-Down approach. This implies that we started with broad parameters and further narrowed it down, while incorporating previous decisions on parameters in selecting the next value.   
+
+>As an example, we started by identifying the season and daytime with the largest average arrival delays, which occur on Summer Evenings. The next step was identifying the airlines operating in such season and daytime with highest level of average delay. In this part, we put airport before airline because most airlines have hub airports. Choosing an airline could already imply a choice for the airport. Thus, we look at airport after we choose the top 25% most delayed airlines. Then we look at airports with the largest average delay. Instead of general delays per airport, we only assessed the average delay per airport during Summer Evening among the identified airlines to have a more focus approach.   
+
+>This process runs through our entire analysis which each decision depending on the previous selection of parameters. We also took advantage of the easy usability of Tableau filters and tried many experiments with our approaches and finally come down to the one below.   
+
+# Conclusion and Recommendation
+
+>The end result is a recommendation of one flight each for short-, mid-, and long-term distances where travellers are likely to experience large delays, and thus a cash reimbursement.  
+
+>All flights are going from **Newark Airport** during **Summer Evening (6pm - 12pm)**.
+>
+- Short-distance flight: **Columbus, OH (with ExpressJet)**
+- Mid-distance flight: **Minneapolis, MN (with ExpressJet)**
+- Long-distance flight: **San Francisco, CA (with Virgin America)**  
+
+# Critique
+> Our data was limited to 2013 flights from NY only to destinations within the US, which might have created bias in our sample as it’s very specific and not representative of the entire operations of the NY airports. However, from the perspective of planning ahead for US in-bound travels post-covid, it could be very helpful in setting up a baseline. Such baseline in delays could then be used with additional information post-COVID to further analyse how likely travelers could be reimbursed with cash flying on such routes with these airlines.     
+>
+- Since the dataset is from 2013 it is quite outdated. It is likely that a lot has changed since then. However, the approach, methodology and visualisation skills we have demonstrated throughout this project will still be helpful if we could have found a more recent dataset. From more updated data, we could certainly carry out a similar analysis to see what has changed especially after covid.    
+- When looking at the reason behind delays of particular carriers or seasons we should consider confounding variables for example 2013 may have had unpredictable weather conditions or a particular airline was going under structural change causing it to have many delays for that particular year. This creates bias in the findings. However, since our analysis are mostly for **Summer Evenings**, we would not have to worry about Blizzard, frozen runway or iced wings. We would have less probability to observe such biases.    
+- The presence of outliers in the data and skewed distributions might have affected our findings on average delays. However, we also think it might not be worthwhile to spend 22 hours trapped in the airport. Therefore, we would still focus on delays that are within 3 to 5 hours, when travelers could have a good rest at the airport but not irritated by the long-hour delay.    
+
+
+
